@@ -1,0 +1,1 @@
+// Chat component for AI
