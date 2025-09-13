@@ -1,0 +1,375 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuildHero Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f7fafc;
+            color: #333;
+        }
+        .hero {
+            background: linear-gradient(135deg, #f7b733 0%, #fc4a1a 100%);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+        }
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 20px;
+        }
+        .card {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin: 10px;
+            padding: 20px;
+            width: 200px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card h3 { margin: 10px 0 5px 0; }
+        .card p { font-size: 1.4em; margin: 0; font-weight: bold; }
+        .footer {
+            padding: 20px;
+            text-align: center;
+            font-size: 0.8em;
+            color: #777;
+        }
+        .mascot-icon { width: 80px; position: fixed; bottom: 20px; right: 20px; animation: bounce 2s infinite; }
+        /* Estimator section styling */
+        .estimator {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin: 20px;
+            padding: 20px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .estimator h2 { margin-top: 0; text-align: center; }
+        .estimator label { display: block; margin-bottom: 10px; font-weight: bold; }
+        .estimator input,
+        .estimator select { margin-left: 10px; padding: 5px; border-radius: 4px; border: 1px solid #ccc; }
+        .estimator button { margin-top: 10px; padding: 8px 12px; background-color: #1e90ff; color: white; border: none; border-radius: 6px; cursor: pointer; }
+        .estimator button:hover { background-color: #2a73cc; }
+        .estimator table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .estimator table, .estimator th, .estimator td { border: 1px solid #ddd; }
+        .estimator th, .estimator td { padding: 8px; text-align: left; }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-15px); }
+            60% { transform: translateY(-7px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <h1>Welcome back, Builder!</h1>
+        <p>Your progress is amazing – keep building!</p>
+    </div>
+    <div class="stats">
+        <div class="card">
+            <h3>Total Payments</h3>
+            <p>$12,540</p>
+        </div>
+        <div class="card">
+            <h3>Budget Remaining</h3>
+            <p>$50,000</p>
+        </div>
+        <div class="card">
+            <h3>Mortgage Balance</h3>
+            <p>$186,000</p>
+        </div>
+        <div class="card">
+            <h3>Tasks Due</h3>
+            <p>6</p>
+        </div>
+        <div class="card">
+            <h3>Supply Orders</h3>
+            <p>5</p>
+        </div>
+        <div class="card">
+            <h3>Vendor Bids</h3>
+            <p>3</p>
+        </div>
+        <div class="card">
+            <h3>Change Orders</h3>
+            <p>1</p>
+        </div>
+    </div>
+    <!-- Estimator tool for live cost and materials calculation -->
+    <div class="estimator">
+        <h2>Project Estimator</h2>
+        <p>Use this tool to estimate the cost and materials for your next build or remodel. Select your project type, enter the area in square feet, and let BuildHero do the rest. You’ll also see alternate material suggestions with sample images.</p>
+        <!-- Audio explanation from the mascot -->
+        <audio controls style="width:100%; margin-bottom:10px;">
+            <source src="mascot_voice_placeholder.wav" type="audio/wav">
+            Your browser does not support the audio element.
+        </audio>
+        <form id="estimatorForm" onsubmit="return false;">
+            <label>Project Type:
+                <select id="projectType">
+                    <option value="new">New Build</option>
+                    <option value="remodel">Remodel</option>
+                </select>
+            </label>
+            <label>Area (sq&nbsp;ft):
+                <input type="number" id="areaInput" min="100" step="10" value="1000" required>
+            </label>
+            <button type="button" id="calculateBtn">Calculate</button>
+        </form>
+        <div id="results" style="display:none;">
+            <h3>Project Cart</h3>
+            <p>Edit quantities or remove items to adjust your estimate.</p>
+            <table id="materialsTable">
+                <thead>
+                    <tr>
+                        <th>Material</th>
+                        <th>Quantity</th>
+                        <th>Unit</th>
+                        <th>Unit Price</th>
+                        <th>Subtotal</th>
+                        <th>Alternative</th>
+                        <th>Sample</th>
+                        <th>Remove</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <div id="totals" style="margin-top:10px;">
+                <p><strong>Base Cost (labor &amp; overhead):</strong> <span id="baseCost"></span></p>
+                <p><strong>Materials Total:</strong> <span id="materialsTotal"></span></p>
+                <p><strong>Grand Total:</strong> <span id="grandTotal"></span></p>
+            </div>
+        </div>
+    </div>
+    <img class="mascot-icon" src="buildhero_mascot_updated_final.png" alt="Mascot with dreadlocks">
+    <div class="footer">
+        © 2025 BuildHero. All rights reserved.
+    </div>
+
+    <script>
+    // Data for estimator. Each material has quantity per square foot, cost per unit,
+    // unit name, a list of alternative materials and the corresponding sample images.
+    const materialsData = {
+        new: [
+            {
+                name: 'Lumber', quantityPerSqFt: 2, unit: 'board ft', costPerUnit: 2.5,
+                alternatives: [
+                    { label: 'Pine', img: 'material_lumber.png' },
+                    { label: 'Cedar', img: 'material_lumber.png' },
+                    { label: 'Redwood', img: 'material_lumber.png' }
+                ]
+            },
+            {
+                name: 'Concrete', quantityPerSqFt: 0.5, unit: 'cu yd', costPerUnit: 166,
+                alternatives: [
+                    { label: 'Standard Mix', img: 'material_concrete.png' },
+                    { label: 'High Strength', img: 'material_concrete.png' },
+                    { label: 'Quick Setting', img: 'material_concrete.png' }
+                ]
+            },
+            {
+                name: 'Bricks', quantityPerSqFt: 4, unit: 'pcs', costPerUnit: 0.5,
+                alternatives: [
+                    { label: 'Red Brick', img: 'material_bricks.png' },
+                    { label: 'Brown Brick', img: 'material_bricks.png' },
+                    { label: 'Grey Brick', img: 'material_bricks.png' }
+                ]
+            },
+            {
+                name: 'Roofing', quantityPerSqFt: 1, unit: 'sq ft', costPerUnit: 5,
+                alternatives: [
+                    { label: 'Asphalt Shingle', img: 'material_roofing.png' },
+                    { label: 'Metal Panel', img: 'material_roofing.png' },
+                    { label: 'Tile', img: 'material_roofing.png' }
+                ]
+            },
+            {
+                name: 'Flooring', quantityPerSqFt: 1, unit: 'sq ft', costPerUnit: 3.5,
+                alternatives: [
+                    { label: 'Laminate', img: 'material_flooring.png' },
+                    { label: 'Hardwood', img: 'material_flooring.png' },
+                    { label: 'Carpet', img: 'material_flooring.png' }
+                ]
+            }
+        ],
+        remodel: [
+            {
+                name: 'Drywall', quantityPerSqFt: 0.3, unit: 'sheet', costPerUnit: 12,
+                alternatives: [
+                    { label: 'Standard Drywall', img: 'material_drywall.png' },
+                    { label: 'Moisture Resistant', img: 'material_drywall.png' },
+                    { label: 'Fire Resistant', img: 'material_drywall.png' }
+                ]
+            },
+            {
+                name: 'Paint', quantityPerSqFt: 0.1, unit: 'gallon', costPerUnit: 25,
+                alternatives: [
+                    { label: 'Matte', img: 'material_paint.png' },
+                    { label: 'Satin', img: 'material_paint.png' },
+                    { label: 'Gloss', img: 'material_paint.png' }
+                ]
+            },
+            {
+                name: 'Cabinets', quantityPerSqFt: 0.01, unit: 'set', costPerUnit: 300,
+                alternatives: [
+                    { label: 'Wood', img: 'material_cabinets.png' },
+                    { label: 'Laminate', img: 'material_cabinets.png' },
+                    { label: 'Metal', img: 'material_cabinets.png' }
+                ]
+            },
+            {
+                name: 'Fixtures', quantityPerSqFt: 0.02, unit: 'set', costPerUnit: 150,
+                alternatives: [
+                    { label: 'Standard', img: 'material_fixtures.png' },
+                    { label: 'Designer', img: 'material_fixtures.png' },
+                    { label: 'Luxury', img: 'material_fixtures.png' }
+                ]
+            },
+            {
+                name: 'Flooring', quantityPerSqFt: 1, unit: 'sq ft', costPerUnit: 3.5,
+                alternatives: [
+                    { label: 'Laminate', img: 'material_flooring.png' },
+                    { label: 'Tile', img: 'material_flooring.png' },
+                    { label: 'Hardwood', img: 'material_flooring.png' }
+                ]
+            }
+        ]
+    };
+    // Cost per square foot for new builds and remodels (approximate averages based on recent cost guides)
+    // New build costs range from around $60–$110 per sq ft for standard construction【780073963948156†L215-L253】; using $90 as a mid-range estimate.
+    // Remodel costs range from $15–$60 per sq ft for basic projects to $60–$150 for gut remodels【553071745609814†L112-L124】; using $75 as an average.
+    const costPerSqFt = { new: 90, remodel: 75 };
+
+    // Base cost (labour & overhead) will be stored here to compute totals. It is set when the estimate is calculated.
+    let baseCost = 0;
+    document.getElementById('calculateBtn').addEventListener('click', function() {
+        const type = document.getElementById('projectType').value;
+        const area = parseFloat(document.getElementById('areaInput').value);
+        if (!area || area <= 0) return;
+        // Compute base cost and display
+        baseCost = costPerSqFt[type] * area;
+        document.getElementById('baseCost').textContent = `$${baseCost.toFixed(2)}`;
+        // Clear the table body
+        const tbody = document.getElementById('materialsTable').querySelector('tbody');
+        tbody.innerHTML = '';
+        // Helper function to update totals across all rows
+        function updateTotals() {
+            let sum = 0;
+            document.querySelectorAll('#materialsTable tbody tr').forEach(row => {
+                const subCell = row.querySelector('.subtotal-cell');
+                const value = parseFloat(subCell.dataset.value || '0');
+                sum += value;
+            });
+            document.getElementById('materialsTotal').textContent = `$${sum.toFixed(2)}`;
+            const grand = baseCost + sum;
+            document.getElementById('grandTotal').textContent = `$${grand.toFixed(2)}`;
+        }
+        // Build table rows from materials data
+        materialsData[type].forEach((mat) => {
+            const defaultQty = parseFloat((mat.quantityPerSqFt * area).toFixed(2));
+            const unitPrice = mat.costPerUnit;
+            let subVal = parseFloat((unitPrice * defaultQty).toFixed(2));
+            const row = document.createElement('tr');
+            // Material name cell
+            const nameCell = document.createElement('td');
+            nameCell.textContent = mat.name;
+            row.appendChild(nameCell);
+            // Quantity input cell
+            const qtyCell = document.createElement('td');
+            const qtyInput = document.createElement('input');
+            qtyInput.type = 'number';
+            qtyInput.min = '0';
+            qtyInput.step = '0.01';
+            qtyInput.value = defaultQty;
+            qtyInput.style.width = '80px';
+            qtyCell.appendChild(qtyInput);
+            row.appendChild(qtyCell);
+            // Unit cell
+            const unitCell = document.createElement('td');
+            unitCell.textContent = mat.unit;
+            row.appendChild(unitCell);
+            // Unit price cell
+            const priceCell = document.createElement('td');
+            priceCell.textContent = `$${unitPrice.toFixed(2)}`;
+            row.appendChild(priceCell);
+            // Subtotal cell
+            const subCell = document.createElement('td');
+            subCell.classList.add('subtotal-cell');
+            subCell.dataset.value = subVal;
+            subCell.textContent = `$${subVal.toFixed(2)}`;
+            row.appendChild(subCell);
+            // Alternative selection cell
+            const altCell = document.createElement('td');
+            const select = document.createElement('select');
+            mat.alternatives.forEach((opt, optIdx) => {
+                const option = document.createElement('option');
+                option.value = optIdx;
+                option.textContent = opt.label;
+                select.appendChild(option);
+            });
+            altCell.appendChild(select);
+            row.appendChild(altCell);
+            // Sample image cell
+            const sampleCell = document.createElement('td');
+            const img = document.createElement('img');
+            img.src = mat.alternatives[0].img;
+            img.alt = `${mat.name} sample`;
+            img.style.width = '50px';
+            img.style.height = '50px';
+            sampleCell.appendChild(img);
+            row.appendChild(sampleCell);
+            // Remove button cell
+            const removeCell = document.createElement('td');
+            const removeBtn = document.createElement('button');
+            removeBtn.textContent = 'Remove';
+            removeBtn.style.backgroundColor = '#ff6961';
+            removeBtn.style.color = '#fff';
+            removeBtn.style.border = 'none';
+            removeBtn.style.borderRadius = '4px';
+            removeBtn.style.padding = '4px 8px';
+            removeBtn.style.cursor = 'pointer';
+            removeCell.appendChild(removeBtn);
+            row.appendChild(removeCell);
+            // Update image when alternative selection changes
+            select.addEventListener('change', (e) => {
+                const selectedOpt = mat.alternatives[parseInt(e.target.value)];
+                img.src = selectedOpt.img;
+            });
+            // Update subtotal and totals when quantity changes
+            qtyInput.addEventListener('input', (e) => {
+                let qty = parseFloat(e.target.value);
+                if (isNaN(qty) || qty < 0) qty = 0;
+                let newSubVal = qty * unitPrice;
+                subCell.dataset.value = newSubVal;
+                subCell.textContent = `$${newSubVal.toFixed(2)}`;
+                updateTotals();
+            });
+            // Remove row and update totals
+            removeBtn.addEventListener('click', () => {
+                row.remove();
+                updateTotals();
+            });
+            tbody.appendChild(row);
+        });
+        // After building rows, compute and display totals
+        updateTotals();
+        // Show the results section
+        document.getElementById('results').style.display = 'block';
+    });
+    </script>
+</body>
+</html>
